@@ -38,11 +38,11 @@ public class WFCLevelGenerator : MonoBehaviour
     }
 
     private void OnEnable() {
-        errorBehaviourDropdown.onValueChanged.AddListener(GeneratorSetErrorBehavior);
+        errorBehaviourDropdown?.onValueChanged.AddListener(GeneratorSetErrorBehavior);
     }
 
     private void OnDisable() {
-        errorBehaviourDropdown.onValueChanged.RemoveListener(GeneratorSetErrorBehavior);
+        errorBehaviourDropdown?.onValueChanged.RemoveListener(GeneratorSetErrorBehavior);
     }
 
     void Update() {
@@ -94,20 +94,13 @@ public class WFCLevelGenerator : MonoBehaviour
         }
     }
 
-    private void PreprocessRooms() {
-        // create mirrored versions
-        foreach(GameObject prefab in roomPrefabs) {;
-            GameObject mirroredRoomPrefab = Instantiate(prefab, new Vector3(-10000, 0, 0), Quaternion.identity);
-            roomPrefabs.Add(mirroredRoomPrefab);
-        }
-    }
-
     private IEnumerator WFCGenerateLevel(int width, int height) {
         int numberOfRooms = roomPrefabs.Count;
         List<Room> allRooms = new List<Room>();
         foreach(GameObject roomPrefab in roomPrefabs) {
             allRooms.Add(roomPrefab.GetComponent<Room>());
         }
+
         // Create the array representing our room options at every position
         List<Room>[,] roomOptions = new List<Room>[width, height];
         
@@ -130,19 +123,19 @@ public class WFCLevelGenerator : MonoBehaviour
             if(x == width - 1) 
                 availableRoomsHere.RemoveAll(room => room.right != Room.ExitType.None);
 
-            SetDebugInfo(x, y, availableRoomsHere, numberOfRooms - 1);
+            SetDebugInfo(x, y, availableRoomsHere, numberOfRooms);
         }
 
         // initialization done
         Debug.Log("WFC initialization done");
-        yield return new WaitForEndOfFrame();
+        yield return null;
 
         // WFC main loop
         while(true) {
             // observation -> Find a position that is highly contrained and place a room there
             int biggestConstraintX = -1;
             int biggestConstraintY = -1;
-            float biggestConstraint = -1; // number of unavailable rooms
+            float biggestConstraint = -1; // number of unavailable/removed rooms
 
             for(int x = 0; x < width; x++)
             for(int y = 0; y < height; y++) {
@@ -193,11 +186,8 @@ public class WFCLevelGenerator : MonoBehaviour
 
             PlaceRoom(pickedX, pickedY, pickedRoom);
 
-            // debug drawing
-            Vector3 debugPos = GetRoomPosition(pickedX, pickedY) + new Vector3(roomWidth / 2f, -roomHeight / 2f, 0);
-            Debug.DrawLine(debugPos + Vector3.left, debugPos + Vector3.right, Color.white, 1f);
-
-            SetDebugInfo(pickedX, pickedY, null, numberOfRooms - 1);
+            // debug / visualisation
+            SetDebugInfo(pickedX, pickedY, null, numberOfRooms);
 
 
             // propagation -> update the surrounding area according tho the new observation
@@ -208,7 +198,7 @@ public class WFCLevelGenerator : MonoBehaviour
                 List<Room> availableRoomsHere = roomOptions[pickedX, pickedY + 1];
                 if(availableRoomsHere != null) {
                     availableRoomsHere.RemoveAll(room => room.down != pickedRoom.up);
-                    SetDebugInfo(pickedX, pickedY + 1, availableRoomsHere, numberOfRooms - 1);
+                    SetDebugInfo(pickedX, pickedY + 1, availableRoomsHere, numberOfRooms);
                 }
             }
             // down
@@ -216,7 +206,7 @@ public class WFCLevelGenerator : MonoBehaviour
                 List<Room> availableRoomsHere = roomOptions[pickedX, pickedY - 1];
                 if(availableRoomsHere != null) {
                     availableRoomsHere.RemoveAll(room => room.up != pickedRoom.down);
-                    SetDebugInfo(pickedX, pickedY - 1, availableRoomsHere, numberOfRooms - 1);
+                    SetDebugInfo(pickedX, pickedY - 1, availableRoomsHere, numberOfRooms);
                 }
             }
             // left
@@ -224,7 +214,7 @@ public class WFCLevelGenerator : MonoBehaviour
                 List<Room> availableRoomsHere = roomOptions[pickedX - 1, pickedY];
                 if(availableRoomsHere != null) {
                     availableRoomsHere.RemoveAll(room => room.right != pickedRoom.left);
-                    SetDebugInfo(pickedX - 1, pickedY, availableRoomsHere, numberOfRooms - 1);
+                    SetDebugInfo(pickedX - 1, pickedY, availableRoomsHere, numberOfRooms);
                 }
             }
             // right
@@ -232,7 +222,7 @@ public class WFCLevelGenerator : MonoBehaviour
                 List<Room> availableRoomsHere = roomOptions[pickedX + 1, pickedY];
                 if(availableRoomsHere != null) {
                     availableRoomsHere.RemoveAll(room => room.left != pickedRoom.right);
-                    SetDebugInfo(pickedX + 1, pickedY, availableRoomsHere, numberOfRooms - 1);
+                    SetDebugInfo(pickedX + 1, pickedY, availableRoomsHere, numberOfRooms);
                 }
             }
 
@@ -266,9 +256,5 @@ public class WFCLevelGenerator : MonoBehaviour
 
     private Vector3 GetRoomPosition(int x, int y) {
         return transform.right * x * roomWidth + transform.up * y * roomHeight;
-    }
-
-    private void OnDrawGizmos() {
-        
     }
 }
